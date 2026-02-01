@@ -1,0 +1,41 @@
+package com.deepflow.settlementsystem.expense.entity;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import java.time.LocalDateTime;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@Entity
+@Table(name = "expense_item_allocations")
+public class ExpenseItemAllocation {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "allocation_id")
+    private Long allocationId;
+
+    @ManyToOne
+    @JoinColumn(name = "item_id")
+    private ExpenseItem item;
+
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User user;
+
+    @Column(name = "share_amount")
+    private Integer shareAmount; // 낼 금액
+
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+}
