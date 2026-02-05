@@ -13,11 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -27,7 +23,6 @@ import java.util.Objects;
 @RequiredArgsConstructor
 @Slf4j
 public class AuthService {
-    private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
     private final UserService userService;
     private final RestClient restClient;
@@ -41,6 +36,17 @@ public class AuthService {
         return LoginResponse.builder()
                 .accessToken(jwtTokenProvider.createToken(user))
                 .build();
+    }
+
+    public KakaoLoginUrlResponse getKakaoLoginUrl() {
+        String resultUrl = UriComponentsBuilder.fromPath(KakaoApiUrl.CODE.getUrl())
+                .queryParam("response_type", "code")
+                .queryParam("client_id", kakaoProperties.getClientId())
+                .queryParam("redirect_uri", kakaoProperties.getRedirectUrl())
+                .encode()
+                .toUriString();
+
+        return new KakaoLoginUrlResponse(resultUrl);
     }
 
     private KakaoUserInfo getKakaoUserInfo(String kakaoAccessToken) {
@@ -79,30 +85,5 @@ public class AuthService {
                 .body(KakaoTokenResponse.class);
 
         return Objects.requireNonNull(tokenResponse).getAccessToken();
-    }
-
-    public KakaoLoginUrlResponse getKakaoLoginUrl() {
-        String resultUrl = UriComponentsBuilder.fromPath(KakaoApiUrl.CODE.getUrl())
-                .queryParam("response_type", "code")
-                .queryParam("client_id", kakaoProperties.getClientId())
-                .queryParam("redirect_uri", kakaoProperties.getRedirectUrl())
-                .encode()
-                .toUriString();
-
-        return new KakaoLoginUrlResponse(resultUrl);
-    }
-
-    @Transactional(readOnly = true)
-    public LoginResponse login(LoginRequest request) {
-        UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
-                request.getUsername(), request.getPassword()
-        );
-
-        Authentication auth = authenticationManager.authenticate(authenticationToken);
-        User user = (User) auth.getPrincipal();
-
-        return LoginResponse.builder()
-                .accessToken(jwtTokenProvider.createToken(user))
-                .build();
     }
 }

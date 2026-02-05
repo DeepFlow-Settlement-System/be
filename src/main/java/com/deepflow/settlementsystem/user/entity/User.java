@@ -21,7 +21,7 @@ public class User implements UserDetails {
     @Column(name = "id", nullable = false)
     private Long id;
 
-    @Column(name = "kakaoId", unique = true)
+    @Column(name = "kakaoId", nullable = false, unique = true)
     private Long kakaoId;
 
     @Column(name = "username", nullable = false, unique = true)

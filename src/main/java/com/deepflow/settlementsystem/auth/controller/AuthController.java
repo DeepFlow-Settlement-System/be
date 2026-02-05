@@ -1,6 +1,8 @@
 package com.deepflow.settlementsystem.auth.controller;
 
-import com.deepflow.settlementsystem.auth.dto.*;
+import com.deepflow.settlementsystem.auth.dto.KakaoLoginRequest;
+import com.deepflow.settlementsystem.auth.dto.KakaoLoginUrlResponse;
+import com.deepflow.settlementsystem.auth.dto.LoginResponse;
 import com.deepflow.settlementsystem.auth.service.AuthService;
 import com.deepflow.settlementsystem.common.code.ApiResponseCode;
 import com.deepflow.settlementsystem.common.dto.ApiResponse;
@@ -28,17 +30,6 @@ public class AuthController {
     ) {
         return ResponseEntity.ok(
                 new ApiResponse<>(ApiResponseCode.OK, authService.kakaoLogin(kakaoLoginRequest))
-        );
-    }
-
-    @PostMapping("/login")
-    public ResponseEntity<ApiResponse<LoginResponse>> login(
-            @RequestBody @Valid LoginRequest request
-    ) {
-        LoginResponse response = authService.login(request);
-
-        return ResponseEntity.ok(
-                new ApiResponse<>(ApiResponseCode.OK, response)
         );
     }
 }

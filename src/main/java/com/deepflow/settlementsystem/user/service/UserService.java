@@ -1,9 +1,7 @@
 package com.deepflow.settlementsystem.user.service;
 
 import com.deepflow.settlementsystem.auth.dto.KakaoUserInfo;
-import com.deepflow.settlementsystem.auth.dto.SignUpRequest;
-import com.deepflow.settlementsystem.common.code.ErrorCode;
-import com.deepflow.settlementsystem.common.exception.CustomException;
+import com.deepflow.settlementsystem.user.dto.UserDto;
 import com.deepflow.settlementsystem.user.entity.User;
 import com.deepflow.settlementsystem.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -31,22 +29,5 @@ public class UserService {
                                         .build()
                         )
                 );
-    }
-
-    @Transactional
-    public void signUp(SignUpRequest request) {
-        userRepository.findByUsername(request.getUsername())
-                .ifPresent(user -> {
-                            throw new CustomException(ErrorCode.DUPLICATE_USER);
-                        }
-                );
-
-        User user = User.builder()
-                .password(passwordEncoder.encode(request.getPassword()))
-                .username(request.getUsername())
-                .nickname(request.getNickname())
-                .build();
-
-        userRepository.save(user);
     }
 }
