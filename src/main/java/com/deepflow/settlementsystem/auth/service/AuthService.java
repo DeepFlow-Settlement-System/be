@@ -42,7 +42,8 @@ public class AuthService {
     }
 
     public KakaoLoginUrlResponse getKakaoLoginUrl() {
-        String resultUrl = UriComponentsBuilder.fromPath(KakaoApiUrl.CODE.getUrl())
+        String resultUrl = UriComponentsBuilder
+                .fromUriString(KakaoApiUrl.CODE.getUrl())
                 .queryParam("response_type", "code")
                 .queryParam("client_id", kakaoProperties.getClientId())
                 .queryParam("redirect_uri", kakaoProperties.getRedirectUrl())
