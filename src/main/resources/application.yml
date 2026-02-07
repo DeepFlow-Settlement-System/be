@@ -1,3 +1,29 @@
 spring:
   application:
     name: settlement-system
+
+  datasource: # 테스트 DB
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 1234
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+naver:
+  ocr:
+    url: https://pxngktbtpr.apigw.ntruss.com/custom/v1/49968/a75c433ab2ae1daf8b032d38bf64e02fb152076b487bfb2784d10e4cf1bba73a/document/receipt
+    secret: ZlZVSE15bURkZVlKeVNwYkt6dUZHdGFMZ0VRcnJWc1A=
+
+logging:
+  level:
+    root: INFO
+    com.deepflow.settlementsystem: INFO
+

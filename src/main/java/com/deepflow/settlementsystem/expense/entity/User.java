@@ -26,8 +26,19 @@ public class User {
     private Long userId;
 
     @OneToMany(mappedBy = "user")
-    private List<Participant> participants = new ArrayList<>();
+    private List<ExpenseParticipant> expenseParticipants = new ArrayList<>();
+
+    @OneToMany(mappedBy = "sender") // 돈을 보낼 내역들
+    private List<ExpenseItemAllocation> sendList = new ArrayList<>();
+
+    @OneToMany(mappedBy = "receiver") // 돈을 받을 내역들
+    private List<ExpenseItemAllocation> receiveList = new ArrayList<>();
+
+    @OneToMany(mappedBy = "payerUser")
+    private List<Expense> paidExpenses = new ArrayList<>();
+
 
     @OneToMany(mappedBy = "user")
-    private List<ExpenseItemAllocation> allocations = new ArrayList<>();
+    private List<ExpenseItemsParticipant> itemsParticipants = new ArrayList<>();
+
 }

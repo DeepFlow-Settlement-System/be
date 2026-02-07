@@ -1,14 +1,17 @@
 package com.deepflow.settlementsystem.expense.entity;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -33,21 +36,26 @@ public class Expense {
     @JoinColumn(name = "group_id")
     private Group group;
 
+    @ManyToOne
+    @JoinColumn(name = "payer_user_id")
+    private User payerUser;
+
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "receipt_image_id")
+    private Receipt receipt; // 영수증 원본 + OCR 결과
+
     @Column(name = "spent_at")
     private LocalDateTime spentAt; // 지출일
 
-    @Column(name = "store_name", length = 100)
-    private String storeName;
+    @Column(name = "title", length = 100)
+    private String title; // 가게명 OR 지출명
 
     @Column(name = "total_amount")
-    private Integer totalAmount; // 영수증 총합 가격
+    private Integer totalAmount; // 영수증 총합 가격 OR N빵 총금액
 
-    @Lob
-    @Column(name = "receipt_image")
-    private byte[] receiptImage; // 영수증 사진 원본
-
-    @Column(name = "ocr_status", length = 20)
-    private String ocrStatus = "FAILED"; // OCR 진행상태
+    @Enumerated(EnumType.STRING)
+    @Column(name = "settlement_type", length = 20, nullable = false)
+    private SettlementType settlementType; // 정산 방법: N빵 | 품목별
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -59,5 +67,5 @@ public class Expense {
     private List<ExpenseItem> items = new ArrayList<>();
 
     @OneToMany(mappedBy = "expense")
-    private List<Participant> participants = new ArrayList<>();
+    private List<ExpenseParticipant> participants = new ArrayList<>();
 }

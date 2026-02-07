@@ -35,14 +35,8 @@ public class ExpenseItem {
     @Column(name = "item_name", length = 200)
     private String itemName; // 영수증의 구매 항목 이름
 
-    @Column(name = "unit_price")
-    private Integer unitPrice; // 단가
-
-    @Column(name = "quantity")
-    private Integer quantity; // 수량
-
     @Column(name = "line_amount")
-    private Integer lineAmount; // 줄 금액
+    private Integer lineAmount; // 항목별 금액
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -52,4 +46,7 @@ public class ExpenseItem {
 
     @OneToMany(mappedBy = "item")
     private List<ExpenseItemAllocation> allocations = new ArrayList<>();
+
+    @OneToMany(mappedBy = "item")
+    private List<ExpenseItemsParticipant>  participants = new ArrayList<>();
 }

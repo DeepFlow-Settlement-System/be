@@ -26,12 +26,20 @@ public class ExpenseItemAllocation {
     private Long allocationId;
 
     @ManyToOne
+    @JoinColumn(name = "group_id")
+    private Group group;
+
+    @ManyToOne
     @JoinColumn(name = "item_id")
     private ExpenseItem item;
 
     @ManyToOne
-    @JoinColumn(name = "user_id")
-    private User user;
+    @JoinColumn(name = "sender_id")     // 돈을 보낼 사람
+    private User sender;
+
+    @ManyToOne
+    @JoinColumn(name = "receiver_id")   // 돈을 받을 사람
+    private User receiver;
 
     @Column(name = "share_amount")
     private Integer shareAmount; // 낼 금액
