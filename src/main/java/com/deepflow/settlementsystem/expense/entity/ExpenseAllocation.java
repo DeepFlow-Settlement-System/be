@@ -1,5 +1,6 @@
 package com.deepflow.settlementsystem.expense.entity;
 
+import com.deepflow.settlementsystem.group.entity.Group;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;

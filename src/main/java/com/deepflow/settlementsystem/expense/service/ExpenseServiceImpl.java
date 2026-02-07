@@ -7,6 +7,8 @@ import com.deepflow.settlementsystem.expense.dto.GroupExpenseResponse;
 import com.deepflow.settlementsystem.expense.dto.GroupExpenseTotalResponse;
 import com.deepflow.settlementsystem.expense.entity.*;
 import com.deepflow.settlementsystem.expense.repository.*;
+import com.deepflow.settlementsystem.group.entity.Group;
+import com.deepflow.settlementsystem.group.repository.GroupRepository;
 import com.deepflow.settlementsystem.user.entity.User;
 
 import java.time.LocalDate;
