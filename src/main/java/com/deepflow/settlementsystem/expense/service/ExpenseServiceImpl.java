@@ -7,6 +7,7 @@ import com.deepflow.settlementsystem.expense.dto.GroupExpenseResponse;
 import com.deepflow.settlementsystem.expense.dto.GroupExpenseTotalResponse;
 import com.deepflow.settlementsystem.expense.entity.*;
 import com.deepflow.settlementsystem.expense.repository.*;
+import com.deepflow.settlementsystem.user.entity.User;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -14,6 +15,8 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+
+import com.deepflow.settlementsystem.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -312,7 +315,7 @@ public class ExpenseServiceImpl implements ExpenseService {
           List<ExpenseParticipant> participants = expenseParticipantRepository.findByExpenseExpenseId(expense.getExpenseId());
           for (ExpenseParticipant participant : participants) {
               participantResponses.add(new GroupExpenseResponse.ParticipantResponse(
-                      participant.getUser().getUserId()
+                      participant.getUser().getId()
               ));
           }
 
@@ -326,7 +329,7 @@ public class ExpenseServiceImpl implements ExpenseService {
                           expenseItemsParticipantRepository.findByItemItemId(item.getItemId());
                   for (ExpenseItemsParticipant itemParticipant : itemParticipants) {
                       itemParticipantResponses.add(new GroupExpenseResponse.ItemParticipantResponse(
-                              itemParticipant.getUser().getUserId()
+                              itemParticipant.getUser().getId()
                       ));
                   }
 
@@ -340,7 +343,7 @@ public class ExpenseServiceImpl implements ExpenseService {
           }
 
           Long receiptId = expense.getReceipt() != null ? expense.getReceipt().getId() : null;
-          Long payerUserId = expense.getPayerUser() != null ? expense.getPayerUser().getUserId() : null;
+          Long payerUserId = expense.getPayerUser() != null ? expense.getPayerUser().getId() : null;
 
           // 지출 1건의 응답 DTO 구성
           expenseResponses.add(new GroupExpenseResponse.ExpenseResponse(
