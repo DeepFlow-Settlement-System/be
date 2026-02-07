@@ -17,8 +17,8 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @Entity
-@Table(name = "expense_item_allocations")
-public class ExpenseItemAllocation {
+@Table(name = "expense_allocations")
+public class ExpenseAllocation {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -28,6 +28,10 @@ public class ExpenseItemAllocation {
     @ManyToOne
     @JoinColumn(name = "group_id")
     private Group group;
+
+    @ManyToOne
+    @JoinColumn(name = "expense_id")
+    private Expense expense;
 
     @ManyToOne
     @JoinColumn(name = "item_id")

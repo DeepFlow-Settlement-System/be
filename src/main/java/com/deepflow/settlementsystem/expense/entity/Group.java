@@ -29,5 +29,5 @@ public class Group {
     private List<Expense> expenses = new ArrayList<>();
 
     @OneToMany(mappedBy = "group")
-    private List<ExpenseItemAllocation>  expenseItemAllocations = new ArrayList<>();
+    private List<ExpenseAllocation> expenseAllocations = new ArrayList<>();
 }

@@ -8,7 +8,9 @@ import com.deepflow.settlementsystem.expense.dto.GroupExpenseTotalResponse;
 import com.deepflow.settlementsystem.expense.entity.*;
 import com.deepflow.settlementsystem.expense.repository.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -179,7 +181,7 @@ public class ExpenseServiceImpl implements ExpenseService {
 
       User payer = savedExpense.getPayerUser(); // 결제자
 
-      List<ExpenseItemAllocation> allocations = new ArrayList<>();
+      List<ExpenseAllocation> allocations = new ArrayList<>();
       for (ExpenseParticipant participant : participants) {
         User sender = participant.getUser(); // 송금자
 
@@ -187,20 +189,21 @@ public class ExpenseServiceImpl implements ExpenseService {
           continue;
         }
 
-        ExpenseItemAllocation expenseItemAllocation = new ExpenseItemAllocation();
-        expenseItemAllocation.setGroup(savedExpense.getGroup());
-        expenseItemAllocation.setItem(null);
-        expenseItemAllocation.setSender(sender);
-        expenseItemAllocation.setReceiver(payer);
-        expenseItemAllocation.setShareAmount(baseShare);
-        expenseItemAllocation.setCreatedAt(now);
+        ExpenseAllocation expenseAllocation = new ExpenseAllocation();
+        expenseAllocation.setGroup(savedExpense.getGroup());
+        expenseAllocation.setExpense(savedExpense);
+        expenseAllocation.setItem(null);
+        expenseAllocation.setSender(sender);
+        expenseAllocation.setReceiver(payer);
+        expenseAllocation.setShareAmount(baseShare);
+        expenseAllocation.setCreatedAt(now); // 구매일
 
-        allocations.add(expenseItemAllocation);
+        allocations.add(expenseAllocation);
       }
 
       if (remainder != 0) { // 가격이 남을 경우, 모든 인원이 나머지를 지불
-        for (ExpenseItemAllocation expenseItemAllocation : allocations) {
-          expenseItemAllocation.setShareAmount(baseShare + remainder);
+        for (ExpenseAllocation expenseAllocation : allocations) {
+          expenseAllocation.setShareAmount(baseShare + remainder);
         }
       }
 
@@ -225,7 +228,7 @@ public class ExpenseServiceImpl implements ExpenseService {
         int baseShare = lineAmount / count;
         int remainder = lineAmount % count;
 
-        List<ExpenseItemAllocation> allocations = new ArrayList<>();
+        List<ExpenseAllocation> allocations = new ArrayList<>();
         for (ExpenseItemsParticipant itemParticipant : itemParticipants) {
 
           User sender = itemParticipant.getUser();
@@ -234,20 +237,21 @@ public class ExpenseServiceImpl implements ExpenseService {
             continue;
           }
 
-          ExpenseItemAllocation expenseItemAllocation = new ExpenseItemAllocation();
-          expenseItemAllocation.setGroup(savedExpense.getGroup());
-          expenseItemAllocation.setItem(item);
-          expenseItemAllocation.setSender(sender);
-          expenseItemAllocation.setReceiver(payer);
-          expenseItemAllocation.setShareAmount(baseShare);
-          expenseItemAllocation.setCreatedAt(now);
+          ExpenseAllocation expenseAllocation = new ExpenseAllocation();
+          expenseAllocation.setGroup(savedExpense.getGroup());
+          expenseAllocation.setExpense(savedExpense);
+          expenseAllocation.setItem(item);
+          expenseAllocation.setSender(sender);
+          expenseAllocation.setReceiver(payer);
+          expenseAllocation.setShareAmount(baseShare);
+          expenseAllocation.setCreatedAt(now);
 
-          allocations.add(expenseItemAllocation);
+          allocations.add(expenseAllocation);
         }
 
         if (remainder != 0) { // 가격이 남을 경우, 모든 인원이 나머지를 지불
-          for (ExpenseItemAllocation expenseItemAllocation : allocations) {
-            expenseItemAllocation.setShareAmount(baseShare + remainder);
+          for (ExpenseAllocation expenseAllocation : allocations) {
+            expenseAllocation.setShareAmount(baseShare + remainder);
           }
         }
 
@@ -278,12 +282,28 @@ public class ExpenseServiceImpl implements ExpenseService {
 
   @Override
   @Transactional(readOnly = true)
-  public GroupExpenseResponse getGroupExpenses(Long groupId) { // 그룹의 총 지출내역 조회
+  public GroupExpenseResponse getGroupExpenses(Long groupId, LocalDate startDate, LocalDate endDate) { // 그룹의 총 지출내역 조회
       groupRepository.findById(groupId)
               .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Group not found"));
 
+      if (startDate != null && endDate != null && startDate.isAfter(endDate)) {
+          throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "startDate must be before endDate");
+      }
+
+      LocalDateTime startDateTime = startDate != null ? startDate.atStartOfDay() : null;
+      LocalDateTime endDateTime = endDate != null ? endDate.atTime(LocalTime.MAX) : null;
+
       // 그룹에 속한 모든 지출을 조회해서, 연관 테이블을 JSON 형태로 묶어 반환
-      List<Expense> expenses = expenseRepository.findAllByGroup_GroupId(groupId);
+      List<Expense> expenses;
+      if (startDateTime != null && endDateTime != null) {
+          expenses = expenseRepository.findAllByGroup_GroupIdAndSpentAtBetween(groupId, startDateTime, endDateTime);
+      } else if (startDateTime != null) {
+          expenses = expenseRepository.findAllByGroup_GroupIdAndSpentAtGreaterThanEqual(groupId, startDateTime);
+      } else if (endDateTime != null) {
+          expenses = expenseRepository.findAllByGroup_GroupIdAndSpentAtLessThanEqual(groupId, endDateTime);
+      } else {
+          expenses = expenseRepository.findAllByGroup_GroupId(groupId);
+      }
       List<GroupExpenseResponse.ExpenseResponse> expenseResponses = new ArrayList<>();
 
       for (Expense expense : expenses) {

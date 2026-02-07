@@ -6,18 +6,22 @@ import com.deepflow.settlementsystem.expense.dto.GroupExpenseResponse;
 import com.deepflow.settlementsystem.expense.dto.GroupExpenseTotalResponse;
 import com.deepflow.settlementsystem.expense.service.ExpenseService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -45,11 +49,11 @@ public class ExpenseController {
                           examples = {
                                   @ExampleObject(
                                           name = "N_BBANG 예시",
-                                          value = "{\n  \"title\": \"커피값\",\n  \"spentAt\": \"2026-02-01T12:00:00\",\n  \"payerUserId\": 3,\n  \"receiptImageId\": 1,\n  \"settlementType\": \"N_BBANG\",\n  \"participants\": [\n    {\"userId\": 1},\n    {\"userId\": 2},\n    {\"userId\": 3}\n  ],\n  \"totalAmount\": \"7,000\"\n}"
+                                          value = "{\n  \"title\": \"커피값\",\n  \"spentAt\": \"2026-02-01T12:00:00\",\n  \"payerUserId\": 3,\n  \"settlementType\": \"N_BBANG\",\n  \"participants\": [\n    {\"userId\": 1},\n    {\"userId\": 2},\n    {\"userId\": 3}\n  ],\n  \"totalAmount\": \"7,000\"\n}"
                                   ),
                                   @ExampleObject(
                                           name = "ITEMIZED 예시",
-                                          value = "{\n  \"title\": \"마트\",\n  \"spentAt\": \"2026-02-01T12:00:00\",\n  \"payerUserId\": 3,\n  \"receiptImageId\": 1,\n  \"settlementType\": \"ITEMIZED\",\n  \"items\": [\n    {\n      \"itemName\": \"사과\",\n      \"price\": \"4,000\",\n      \"itemParticipants\": [{\"userId\": 1}, {\"userId\": 2}]\n    },\n    {\n      \"itemName\": \"당근\",\n      \"price\": \"3,000\",\n      \"itemParticipants\": [{\"userId\": 2}, {\"userId\": 3}]\n    }\n  ],\n  \"participants\": [\n    {\"userId\": 1},\n    {\"userId\": 2},\n    {\"userId\": 3}\n  ],\n  \"totalAmount\": \"7,000\"\n}"
+                                          value = "{\n  \"title\": \"마트\",\n  \"spentAt\": \"2026-02-01T12:00:00\",\n  \"payerUserId\": 3,\n  \"settlementType\": \"ITEMIZED\",\n  \"items\": [\n    {\n      \"itemName\": \"사과\",\n      \"price\": \"4,000\",\n      \"itemParticipants\": [{\"userId\": 1}, {\"userId\": 2}]\n    },\n    {\n      \"itemName\": \"당근\",\n      \"price\": \"3,000\",\n      \"itemParticipants\": [{\"userId\": 2}, {\"userId\": 3}]\n    }\n  ],\n  \"participants\": [\n    {\"userId\": 1},\n    {\"userId\": 2},\n    {\"userId\": 3}\n  ],\n  \"totalAmount\": \"7,000\"\n}"
                                   )
                           }
                   )
@@ -78,10 +82,16 @@ public class ExpenseController {
   @GetMapping("/groups/{groupId}/expenses")
   @Operation(
           summary = "그룹 지출내역 조회",
-          description = "지출 + 참여자 + (품목별인 경우) 품목/품목참여자 정보를 묶어서 반환합니다."
+          description = "지출 + 참여자 + (품목별인 경우) 품목/품목참여자 정보를 묶어서 반환합니다. 날짜 필터(startDate/endDate)를 지원합니다."
   )
-  public ResponseEntity<GroupExpenseResponse> getExpenses(@PathVariable Long groupId){
-    return ResponseEntity.ok(expenseService.getGroupExpenses(groupId));
+  public ResponseEntity<GroupExpenseResponse> getExpenses(
+          @PathVariable Long groupId,
+          @Parameter(description = "조회 시작 날짜 (YYYY-MM-DD)", example = "2026-02-01")
+          @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+          @Parameter(description = "조회 종료 날짜 (YYYY-MM-DD)", example = "2026-02-07")
+          @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+  ){
+    return ResponseEntity.ok(expenseService.getGroupExpenses(groupId, startDate, endDate));
   }
 
 

@@ -4,6 +4,7 @@ import com.deepflow.settlementsystem.expense.dto.CreateExpenseRequest;
 import com.deepflow.settlementsystem.expense.dto.CreateExpenseResponse;
 import com.deepflow.settlementsystem.expense.dto.GroupExpenseResponse;
 import com.deepflow.settlementsystem.expense.dto.GroupExpenseTotalResponse;
+import java.time.LocalDate;
 
 public interface ExpenseService {
 
@@ -11,5 +12,5 @@ public interface ExpenseService {
 
   GroupExpenseTotalResponse getGroupTotal(Long groupId);
 
-  GroupExpenseResponse getGroupExpenses(Long groupId);
+  GroupExpenseResponse getGroupExpenses(Long groupId, LocalDate startDate, LocalDate endDate);
 }

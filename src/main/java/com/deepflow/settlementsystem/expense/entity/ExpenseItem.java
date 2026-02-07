@@ -45,7 +45,7 @@ public class ExpenseItem {
     private LocalDateTime updatedAt;
 
     @OneToMany(mappedBy = "item")
-    private List<ExpenseItemAllocation> allocations = new ArrayList<>();
+    private List<ExpenseAllocation> allocations = new ArrayList<>();
 
     @OneToMany(mappedBy = "item")
     private List<ExpenseItemsParticipant>  participants = new ArrayList<>();
