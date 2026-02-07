@@ -15,9 +15,10 @@ spring:
   application:
     name: settlement-system
 
-app:
-  base-url: https://t2.mobidic.shop
-  timezone: Asia/Seoul
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
 
 server:
   port: 8080
