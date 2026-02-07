@@ -9,7 +9,8 @@ public enum KakaoApiUrl {
     CODE("https://kauth.kakao.com/oauth/authorize"),
     TOKEN("https://kauth.kakao.com/oauth/token"),
     ME("https://kapi.kakao.com/v2/user/me"),
-    LOGOUT("https://kapi.kakao.com/v1/user/logout");
+    LOGOUT("https://kapi.kakao.com/v1/user/logout"),
+    FRIENDS("https://kapi.kakao.com/v1/api/talk/friends");
 
     private final String url;
 }
