@@ -201,6 +201,7 @@ public class ExpenseServiceImpl implements ExpenseService {
         expenseAllocation.setSender(sender);
         expenseAllocation.setReceiver(payer);
         expenseAllocation.setShareAmount(baseShare);
+        expenseAllocation.setStatus(SettlementSatus.UNSETTLED);
         expenseAllocation.setCreatedAt(now); // 구매일
 
         allocations.add(expenseAllocation);
@@ -249,6 +250,7 @@ public class ExpenseServiceImpl implements ExpenseService {
           expenseAllocation.setSender(sender);
           expenseAllocation.setReceiver(payer);
           expenseAllocation.setShareAmount(baseShare);
+          expenseAllocation.setStatus(SettlementSatus.UNSETTLED);
           expenseAllocation.setCreatedAt(now);
 
           allocations.add(expenseAllocation);

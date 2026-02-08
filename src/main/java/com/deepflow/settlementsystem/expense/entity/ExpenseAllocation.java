@@ -48,7 +48,10 @@ public class ExpenseAllocation {
     private User receiver;
 
     @Column(name = "share_amount")
-    private Integer shareAmount; // 낼 금액
+    private Integer shareAmount;        // 낼 금액
+
+    @Column(name = "status")
+    private SettlementSatus status;              // UNSETTLED, REQUESTED, COMPLETED
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
