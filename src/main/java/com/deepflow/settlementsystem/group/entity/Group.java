@@ -1,5 +1,7 @@
 package com.deepflow.settlementsystem.group.entity;
 
+import com.deepflow.settlementsystem.expense.entity.Expense;
+import com.deepflow.settlementsystem.expense.entity.ExpenseAllocation;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -10,6 +12,8 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "user_groups")
@@ -17,7 +21,6 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @EntityListeners(AuditingEntityListener.class)
 public class Group {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -48,4 +51,14 @@ public class Group {
     public void setRoom(Room room) {
         this.room = room;
     }
+
+
+    // 추가자: 양재혁
+    // ================================================================================================
+    @OneToMany(mappedBy = "group")  // 현재 그룹이 가진, 지출들
+    private List<Expense> expenses = new ArrayList<>();
+
+    @OneToMany(mappedBy = "group")  // 현재 그룹이 가진, 송금 내역들
+    private List<ExpenseAllocation> expenseAllocations = new ArrayList<>();
+    // ================================================================================================
 }

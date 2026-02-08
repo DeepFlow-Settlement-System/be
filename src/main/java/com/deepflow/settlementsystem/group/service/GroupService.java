@@ -61,7 +61,7 @@ public class GroupService {
     public List<GroupResponse> getMyGroups(User user) {
         List<Group> groups = groupRepository.findAllByUserId(user.getId());
         return groups.stream()
-                .filter(group -> group.getRoom() != null) // null 체크
+                .filter(group -> group.getRoom() != null)
                 .map(group -> toGroupResponse(group, group.getRoom()))
                 .collect(Collectors.toList());
     }
