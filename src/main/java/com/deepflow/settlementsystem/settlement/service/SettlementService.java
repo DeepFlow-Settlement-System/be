@@ -4,10 +4,18 @@ import com.deepflow.settlementsystem.auth.config.KakaoApiUrl;
 import com.deepflow.settlementsystem.auth.service.KakaoTokenService;
 import com.deepflow.settlementsystem.common.code.ErrorCode;
 import com.deepflow.settlementsystem.common.exception.CustomException;
+import com.deepflow.settlementsystem.expense.entity.Expense;
+import com.deepflow.settlementsystem.expense.entity.ExpenseAllocation;
+import com.deepflow.settlementsystem.expense.entity.ExpenseItem;
+import com.deepflow.settlementsystem.expense.entity.SettlementStatus;
+import com.deepflow.settlementsystem.expense.entity.SettlementType;
+import com.deepflow.settlementsystem.expense.repository.ExpenseItemAllocationRepository;
 import com.deepflow.settlementsystem.settlement.dto.SettlementItem;
 import com.deepflow.settlementsystem.settlement.dto.request.KakaoMessageRequest;
 import com.deepflow.settlementsystem.settlement.dto.response.KakaoFriendsResponse;
 import com.deepflow.settlementsystem.settlement.dto.response.KakaoSendMessageResponse;
+import com.deepflow.settlementsystem.settlement.dto.response.SettlementListResponse;
+import com.deepflow.settlementsystem.settlement.dto.response.SettlementResponse;
 import com.deepflow.settlementsystem.user.entity.User;
 import com.deepflow.settlementsystem.user.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -27,6 +35,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -38,44 +47,62 @@ public class SettlementService {
     private final RestClient restClient;
     private final KakaoTokenService kakaoTokenService;
     private final ObjectMapper objectMapper;
+    private final ExpenseItemAllocationRepository expenseAllocationRepository;
     
-    public void sendSettlementMessage(Long senderUserId, Long receiverUserId, Long amount) {
+    /**
+     * 정산 요청 메시지 전송
+     * 돈을 받는 사람(receiver)이 돈을 보낼 사람(sender)에게 카카오톡 메시지를 전송합니다.
+     */
+    @Transactional
+    public void sendSettlementMessage(Long allocationId, Long receiverUserId) {
         // 입력값 검증
-        if (senderUserId == null) {
+        if (allocationId == null) {
             throw new CustomException(ErrorCode.INVALID_INPUT);
         }
         if (receiverUserId == null) {
             throw new CustomException(ErrorCode.INVALID_INPUT);
         }
-        if (amount == null || amount <= 0) {
+        
+        // ExpenseAllocation 조회
+        ExpenseAllocation allocation = expenseAllocationRepository.findByIdWithRelations(allocationId)
+                .orElseThrow(() -> new CustomException(ErrorCode.NO_SETTLEMENT));
+        
+        // 돈을 받는 사람(receiver)만 요청 가능
+        if (!allocation.getReceiver().getId().equals(receiverUserId)) {
+            throw new CustomException(ErrorCode.NO_ACCESS_PERMISSION);
+        }
+        
+        // 이미 REQUESTED 상태인지 확인
+        if (allocation.getStatus() == SettlementStatus.REQUESTED) {
             throw new CustomException(ErrorCode.INVALID_INPUT);
         }
         
-        User sender = userRepository.findById(senderUserId)
-                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+        // 돈을 받는 사람 (메시지를 보내는 사람)
+        User receiver = allocation.getReceiver();
+        // 돈을 보낼 사람 (메시지를 받는 사람)
+        User sender = allocation.getSender();
+        Long amount = allocation.getShareAmount().longValue();
         
-        if (sender.getKakaoPaySuffix() == null || sender.getKakaoPaySuffix().isEmpty()) {
+        // receiver의 카카오페이 링크가 필요 (receiver가 돈을 받아야 하므로)
+        if (receiver.getKakaoPaySuffix() == null || receiver.getKakaoPaySuffix().isEmpty()) {
             throw new CustomException(ErrorCode.INVALID_INPUT);
         }
         
-        // Access token 조회
-        String accessToken = kakaoTokenService.getKakaoAccessToken(senderUserId);
+        // Access token 조회 (receiver의 토큰 사용 - receiver가 메시지를 보냄)
+        String accessToken = kakaoTokenService.getKakaoAccessToken(receiverUserId);
         if (accessToken == null || accessToken.isEmpty()) {
             throw new CustomException(ErrorCode.INVALID_TOKEN);
         }
         
-        // 받는 사람의 UUID
-        String receiverUuid = findReceiverUuidByUserId(accessToken, receiverUserId);
+        // 돈을 보낼 사람(sender)의 UUID 찾기
+        String senderUuid = findUserUuidByUserId(accessToken, sender.getId());
         
-        // 송금 링크 생성
-        String paymentLink = generatePaymentLink(sender.getKakaoPaySuffix(), amount);
+        // 송금 링크 생성 (receiver의 카카오페이 링크 - receiver에게 돈을 보내는 링크)
+        String paymentLink = generatePaymentLink(receiver.getKakaoPaySuffix(), amount);
         
-        //메시지 생성
-        String groupName = "그룹명"; // TODO: 차후 다른 도메인에서 가져올 예정
-        List<SettlementItem> items = List.of(
-                new SettlementItem("아이템", 12000L),
-                new SettlementItem("아이템", 11111L)
-        ); // TODO: 차후 다른 도메인에서 가져올 예정
+        // 그룹명과 지출 내역 가져오기
+        String groupName = allocation.getGroup().getName();
+        List<SettlementItem> items = getSettlementItems(allocation);
         
         KakaoMessageRequest message = createSettlementMessage(
                 paymentLink,
@@ -84,11 +111,21 @@ public class SettlementService {
                 amount
         );
         
-        // 카카오 메시지 전송 API 호출
-        sendKakaoMessage(accessToken, receiverUuid, message);
+        // 카카오 메시지 전송 API 호출 (receiver가 sender에게 전송)
+        sendKakaoMessage(accessToken, senderUuid, message);
+        
+        // 상태를 REQUESTED로 변경
+        allocation.setStatus(SettlementStatus.REQUESTED);
+        expenseAllocationRepository.save(allocation);
     }
     
-    private String findReceiverUuidByUserId(String accessToken, Long receiverUserId) {
+    /**
+     * 카카오 친구 목록에서 특정 사용자의 UUID를 찾습니다.
+     * @param accessToken 카카오 Access Token
+     * @param targetUserId 찾을 사용자의 ID
+     * @return 사용자의 UUID
+     */
+    private String findUserUuidByUserId(String accessToken, Long targetUserId) {
         // 친구 목록에서 찾기 (페이지네이션 포함)
         String currentAfterUrl = null;
         int maxPages = 1000;
@@ -97,9 +134,9 @@ public class SettlementService {
         do {
             KakaoFriendsResponse friendsResponse = getKakaoFriends(accessToken, currentAfterUrl);
             
-            String receiverUuid = findReceiverUuid(friendsResponse, receiverUserId);
-            if (receiverUuid != null) {
-                return receiverUuid;
+            String userUuid = findUserUuidInFriends(friendsResponse, targetUserId);
+            if (userUuid != null) {
+                return userUuid;
             }
             
             currentAfterUrl = friendsResponse.getAfterUrl();
@@ -107,10 +144,7 @@ public class SettlementService {
             
         } while (currentAfterUrl != null && pageCount < maxPages);
         
-        if (pageCount >= maxPages) {
-            log.warn("친구 목록 검색 중 최대 페이지 수({})에 도달했습니다. receiverUserId: {}", 
-                    maxPages, receiverUserId);
-        }
+        log.warn("카카오 친구 목록에서 사용자를 찾지 못했습니다. targetUserId: {}", targetUserId);
         
         throw new CustomException(ErrorCode.USER_NOT_FOUND);
     }
@@ -134,13 +168,19 @@ public class SettlementService {
         return Objects.requireNonNull(response);
     }
     
-    private String findReceiverUuid(KakaoFriendsResponse response, Long receiverUserId) {
+    /**
+     * 카카오 친구 목록 응답에서 특정 사용자 ID의 UUID를 찾습니다.
+     * @param response 카카오 친구 목록 응답
+     * @param targetUserId 찾을 사용자의 ID
+     * @return 사용자의 UUID, 없으면 null
+     */
+    private String findUserUuidInFriends(KakaoFriendsResponse response, Long targetUserId) {
         if (response.getElements() == null || response.getElements().isEmpty()) {
             return null;
         }
         
         return response.getElements().stream()
-                .filter(friend -> friend.getId() != null && friend.getId().equals(receiverUserId))
+                .filter(friend -> friend.getId() != null && friend.getId().equals(targetUserId))
                 .map(KakaoFriendsResponse.Friend::getUuid)
                 .filter(uuid -> uuid != null && !uuid.isEmpty())
                 .findFirst()
@@ -272,6 +312,97 @@ public class SettlementService {
             log.error("카카오 메시지 전송 중 오류 발생", e);
             throw new CustomException(ErrorCode.EXTERNAL_SERVER_ERROR);
         }
+    }
+    
+    // 정산 상태 조회
+    public SettlementResponse getSettlementStatus(Long allocationId, Long userId) {
+        ExpenseAllocation allocation = expenseAllocationRepository.findByIdWithRelations(allocationId)
+                .orElseThrow(() -> new CustomException(ErrorCode.NO_SETTLEMENT));
+        
+        // 사용자가 sender 또는 receiver인지 확인
+        if (!allocation.getSender().getId().equals(userId) && !allocation.getReceiver().getId().equals(userId)) {
+            throw new CustomException(ErrorCode.NO_ACCESS_PERMISSION);
+        }
+        
+        return toSettlementResponse(allocation);
+    }
+    
+    /**
+     * 정산 완료 처리
+     * 돈을 받는 사람(receiver)이 송금 수령 확인 후 완료 처리합니다.
+     */
+    @Transactional
+    public void completeSettlement(Long allocationId, Long userId) {
+        ExpenseAllocation allocation = expenseAllocationRepository.findByIdWithRelations(allocationId)
+                .orElseThrow(() -> new CustomException(ErrorCode.NO_SETTLEMENT));
+        
+        // 돈을 받는 사람(receiver)만 완료 처리 가능
+        if (!allocation.getReceiver().getId().equals(userId)) {
+            throw new CustomException(ErrorCode.NO_ACCESS_PERMISSION);
+        }
+        
+        // REQUESTED 상태인지 확인
+        if (allocation.getStatus() != SettlementStatus.REQUESTED) {
+            throw new CustomException(ErrorCode.INVALID_INPUT);
+        }
+        
+        // 상태를 COMPLETED로 변경
+        allocation.setStatus(SettlementStatus.COMPLETED);
+        expenseAllocationRepository.save(allocation);
+    }
+    
+    // 정산 목록 조회
+    public SettlementListResponse getSettlementList(Long userId) {
+        List<ExpenseAllocation> allocations = expenseAllocationRepository.findByUserId(userId);
+        
+        List<SettlementResponse> settlements = allocations.stream()
+                .map(this::toSettlementResponse)
+                .collect(Collectors.toList());
+        
+        return SettlementListResponse.builder()
+                .settlements(settlements)
+                .totalCount((long) settlements.size())
+                .build();
+    }
+    
+    // ExpenseAllocation에서 SettlementItem 리스트 생성
+    private List<SettlementItem> getSettlementItems(ExpenseAllocation allocation) {
+        List<SettlementItem> items = new ArrayList<>();
+        Expense expense = allocation.getExpense();
+        
+        if (expense == null) {
+            return items;
+        }
+        
+        // N빵인 경우
+        if (expense.getSettlementType() == SettlementType.N_BBANG) {
+            items.add(new SettlementItem(expense.getTitle(), expense.getTotalAmount().longValue()));
+        } 
+        // 품목별인 경우
+        else if (expense.getSettlementType() == SettlementType.ITEMIZED && allocation.getItem() != null) {
+            ExpenseItem item = allocation.getItem();
+            items.add(new SettlementItem(item.getItemName(), item.getLineAmount().longValue()));
+        }
+        
+        return items;
+    }
+    
+    // ExpenseAllocation을 SettlementResponse로 변환
+    private SettlementResponse toSettlementResponse(ExpenseAllocation allocation) {
+        return SettlementResponse.builder()
+                .allocationId(allocation.getAllocationId())
+                .groupId(allocation.getGroup().getId())
+                .groupName(allocation.getGroup().getName())
+                .expenseId(allocation.getExpense() != null ? allocation.getExpense().getExpenseId() : null)
+                .expenseTitle(allocation.getExpense() != null ? allocation.getExpense().getTitle() : null)
+                .senderId(allocation.getSender().getId())
+                .senderNickname(allocation.getSender().getNickname())
+                .receiverId(allocation.getReceiver().getId())
+                .receiverNickname(allocation.getReceiver().getNickname())
+                .amount(allocation.getShareAmount().longValue())
+                .status(allocation.getStatus())
+                .createdAt(allocation.getCreatedAt())
+                .build();
     }
     
 }
