@@ -3,6 +3,7 @@ package com.deepflow.settlementsystem.group.service;
 import com.deepflow.settlementsystem.common.code.ErrorCode;
 import com.deepflow.settlementsystem.common.exception.CustomException;
 import com.deepflow.settlementsystem.group.dto.request.GroupCreateRequest;
+import com.deepflow.settlementsystem.group.dto.request.GroupUpdateRequest;
 import com.deepflow.settlementsystem.group.dto.response.*;
 import com.deepflow.settlementsystem.group.entity.Group;
 import com.deepflow.settlementsystem.group.entity.Member;
@@ -132,6 +133,32 @@ public class GroupService {
                 .createdAt(group.getCreatedAt())
                 .updatedAt(group.getUpdatedAt())
                 .build();
+    }
+
+    /**
+     * 그룹 정보 수정
+     * @param groupId 그룹 ID
+     * @param request 그룹 수정 요청 정보
+     * @param user 수정하는 사용자
+     * @return 수정된 그룹 정보
+     */
+    @Transactional
+    public GroupResponse updateGroup(Long groupId, GroupUpdateRequest request, User user) {
+        Group group = groupRepository.findByIdWithRoom(groupId)
+                .orElseThrow(() -> new CustomException(ErrorCode.GROUP_NOT_FOUND));
+
+        // 사용자가 해당 그룹의 멤버인지 확인
+        boolean isMember = memberRepository.existsByRoomIdAndUserId(group.getRoom().getId(), user.getId());
+        if (!isMember) {
+            throw new CustomException(ErrorCode.NO_ACCESS_PERMISSION);
+        }
+
+        // 그룹 정보 업데이트
+        group.updateInfo(request.getName(), request.getDescription(), request.getStartDate(), request.getEndDate());
+        groupRepository.save(group);
+
+        log.info("그룹 정보 수정 완료: groupId={}", groupId);
+        return toGroupResponse(group, group.getRoom());
     }
 
     /**

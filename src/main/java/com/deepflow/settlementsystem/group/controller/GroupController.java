@@ -1,6 +1,7 @@
 package com.deepflow.settlementsystem.group.controller;
 
-import com.deepflow.settlementsystem.group.dto.request.*;
+import com.deepflow.settlementsystem.group.dto.request.GroupCreateRequest;
+import com.deepflow.settlementsystem.group.dto.request.GroupUpdateRequest;
 import com.deepflow.settlementsystem.group.dto.response.*;
 import com.deepflow.settlementsystem.group.service.GroupService;
 import com.deepflow.settlementsystem.user.entity.User;
@@ -59,6 +60,32 @@ public class GroupController {
             @Parameter(description = "현재 로그인한 사용자", required = true, hidden = true)
             @AuthenticationPrincipal User user) {
         GroupDetailResponse response = groupService.getGroupDetail(groupId, user);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "그룹 정보 수정 (PUT)", description = "그룹 정보를 전체 수정합니다. 모든 필드를 포함해야 합니다.")
+    @PutMapping("/{groupId}")
+    public ResponseEntity<GroupResponse> updateGroupPut(
+            @Parameter(description = "그룹 ID", required = true, example = "1")
+            @PathVariable Long groupId,
+            @Parameter(description = "그룹 수정 요청 정보", required = true)
+            @Valid @RequestBody GroupUpdateRequest request,
+            @Parameter(description = "현재 로그인한 사용자", required = true, hidden = true)
+            @AuthenticationPrincipal User user) {
+        GroupResponse response = groupService.updateGroup(groupId, request, user);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "그룹 정보 수정 (PATCH)", description = "그룹 정보를 부분 수정합니다. 수정할 필드만 포함하면 됩니다.")
+    @PatchMapping("/{groupId}")
+    public ResponseEntity<GroupResponse> updateGroupPatch(
+            @Parameter(description = "그룹 ID", required = true, example = "1")
+            @PathVariable Long groupId,
+            @Parameter(description = "그룹 수정 요청 정보", required = true)
+            @Valid @RequestBody GroupUpdateRequest request,
+            @Parameter(description = "현재 로그인한 사용자", required = true, hidden = true)
+            @AuthenticationPrincipal User user) {
+        GroupResponse response = groupService.updateGroup(groupId, request, user);
         return ResponseEntity.ok(response);
     }
 
