@@ -76,6 +76,21 @@ public class Group {
         this.imageContentType = null;
     }
 
+    public void updateInfo(String name, String description, LocalDate startDate, LocalDate endDate) {
+        if (name != null) {
+            this.name = name;
+        }
+        if (description != null) {
+            this.description = description;
+        }
+        if (startDate != null) {
+            this.startDate = startDate;
+        }
+        if (endDate != null) {
+            this.endDate = endDate;
+        }
+    }
+
     public void setRoom(Room room) {
         this.room = room;
     }
